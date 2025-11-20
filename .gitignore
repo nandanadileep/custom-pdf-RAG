@@ -1,3 +1,10 @@
 backend/data
 .env
 backend/.env
+
+backend/local_cache/
+*.onnx
+*.bin
+*.safetensors
+*.xml
+*.json
