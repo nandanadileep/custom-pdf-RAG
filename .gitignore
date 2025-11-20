@@ -8,3 +8,7 @@ backend/local_cache/
 *.safetensors
 *.xml
 *.json
+backend/local_cache/
+data/
+__pycache__/
+*.pyc
