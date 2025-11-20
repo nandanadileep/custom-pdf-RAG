@@ -2,12 +2,13 @@ import fitz
 import os
 import pickle
 import faiss
+import numpy as np
 from fastembed.embedding import FlagEmbedding
 
 embedder = FlagEmbedding("BAAI/bge-small-en-v1.5")
 
 def embed(texts):
-    return [e.embedding for e in embedder.embed(texts)]
+    return list(embedder.embed(texts))
 
 def extract_text_from_pdf(content_bytes):
     pdf = fitz.open(stream=content_bytes, filetype="pdf")
@@ -48,18 +49,21 @@ def process_pdf(content_bytes, filename):
     # 2. Chunk text
     chunks = chunk_text(pages)
 
-    # 3. Create list of only chunk text for embeddings
+    # 3. Prepare chunk texts
     chunk_texts = [c["text"] for c in chunks]
 
-    # 4. Embed
+    # 4. Embed (list of numpy arrays)
     embeddings = embed(chunk_texts)
 
-    # 5. Build FAISS index
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(embeddings)
+    dim = embeddings[0].shape[0]
 
-    # 6. Save FAISS + chunks
+    emb_matrix = np.vstack(embeddings).astype("float32")
+
+    # Build FAISS index
+    index = faiss.IndexFlatL2(dim)
+    index.add(emb_matrix)
+
+    # Save FAISS + chunks
     faiss.write_index(index, f"data/{filename}.faiss")
     pickle.dump(chunks, open(f"data/{filename}_chunks.pkl", "wb"))
 
