@@ -1,3 +1,3 @@
-/data
+backend/data
 .env
-/local_cache
+backend/.env
