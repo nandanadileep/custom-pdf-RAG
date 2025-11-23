@@ -1,101 +1,150 @@
 import { useState } from 'react';
-import { Upload, Heart, Send, BookOpen, Sparkles } from 'lucide-react';
-import axios from 'axios';
+import { Send, Sparkles, FileText, MessageSquare } from 'lucide-react';
 
-interface NotebookProps {
-  filename: string;
-}
-
-const Notebook = ({ filename }: NotebookProps) => {
+const ImprovedNotebook = ({ filename }: { filename: string }) => {
   const [query, setQuery] = useState('');
-  const [answer, setAnswer] = useState('');
+  const [messages, setMessages] = useState<Array<{type: 'user' | 'ai', text: string}>>([]);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<Array<{q: string, a: string}>>([]);
 
-  const handleAsk = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAsk = async () => {
     if (!query.trim()) return;
 
+    const userMessage = query;
+    setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+    setQuery('');
     setLoading(true);
-    const formData = new FormData();
-    formData.append('query', query);
-    formData.append('filename', filename);
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/query', formData);
-      const newAnswer = res.data.answer;
-      setAnswer(newAnswer);
-      setHistory(prev => [...prev, { q: query, a: newAnswer }]);
-      setQuery('');
+      const formData = new FormData();
+      formData.append('query', userMessage);
+      formData.append('filename', filename);
+
+      const res = await fetch('http://127.0.0.1:8000/query', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      setMessages(prev => [...prev, { type: 'ai', text: data.answer }]);
     } catch (err) {
       console.error(err);
-      setAnswer("Oh no! Something went wrong talking to the AI 😿");
+      setMessages(prev => [...prev, { type: 'ai', text: "Sorry, something went wrong! 😿" }]);
     } finally {
       setLoading(false);
     }
   };
 
-    return (
-        <div className="w-full max-w-5xl h-[75vh] flex items-center justify-center p-4 z-10 pb-20"> {/* pb-20 makes room for animals */}
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAsk();
+    }
+  };
+
+  return (
+    <div className="w-full max-w-6xl h-[85vh] mx-auto p-6">
+      <div className="flex h-full bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl shadow-2xl overflow-hidden border-4 border-white/50">
         
-        {/* The Notebook itself */}
-        <div className="flex w-full h-full bg-white rounded-3xl shadow-[0_20px_50px_rgba(236,72,153,0.3)] overflow-hidden border-4 border-pink-100">
-            
-            {/* Left Sidebar (Darker Pink) */}
-            <div className="w-1/3 bg-pink-50 border-r-2 border-pink-100 flex flex-col p-6 overflow-y-auto">
-            <div className="bg-white p-4 rounded-2xl shadow-sm mb-6">
-                <h2 className="text-xl font-bold text-pink-500 mb-1">📄 File Info</h2>
-                <p className="text-gray-500 text-sm truncate">{filename}.pdf</p>
+        {/* Sidebar */}
+        <div className="w-80 bg-white/80 backdrop-blur-xl border-r-2 border-pink-100 flex flex-col p-6">
+          <div className="bg-gradient-to-r from-pink-400 to-purple-400 p-5 rounded-2xl shadow-lg mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="w-6 h-6 text-white" />
+              <h2 className="text-xl font-bold text-white">Current PDF</h2>
             </div>
-            
-            <h3 className="font-bold text-gray-400 uppercase text-xs tracking-wider mb-4">Chat History</h3>
+            <p className="text-white/90 text-sm font-medium truncate bg-white/20 px-3 py-2 rounded-lg mt-2">
+              {filename}.pdf
+            </p>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto">
+            <h3 className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-4 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Recent Questions
+            </h3>
             <div className="space-y-3">
-                {/* History Items */}
-                {history.map((h, i) => (
-                <div key={i} className="bg-white p-3 rounded-xl text-xs shadow-sm opacity-80">
-                    <span className="font-bold text-pink-400">Q:</span> {h.q}
+              {messages.filter(m => m.type === 'user').slice(-5).reverse().map((msg, i) => (
+                <div key={i} className="bg-gradient-to-r from-pink-100 to-purple-100 p-3 rounded-xl text-sm shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <p className="text-gray-700 line-clamp-2">{msg.text}</p>
                 </div>
-                ))}
+              ))}
+              {messages.filter(m => m.type === 'user').length === 0 && (
+                <p className="text-gray-400 text-sm italic">No questions yet...</p>
+              )}
             </div>
-            </div>
-
-            {/* Right Content (The Chat) */}
-            <div className="flex-1 flex flex-col bg-[#fffdf5] relative">
-            {/* Notebook lines background */}
-            <div className="absolute inset-0 notebook-lines pointer-events-none opacity-50"></div>
-
-            {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 relative z-10">
-                {/* If answer exists, show it in a bubble */}
-                {answer && (
-                    <div className="animate-fade-in-up">
-                    <div className="bg-white p-6 rounded-2xl rounded-tl-none shadow-md border-2 border-pink-100 inline-block max-w-full">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">🐰</span>
-                            <span className="font-bold text-pink-500">Answer:</span>
-                        </div>
-                        <p className="leading-relaxed text-gray-700">{answer}</p>
-                    </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Input Area */}
-            <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-pink-100 relative z-20">
-                <form onSubmit={handleAsk} className="flex gap-2">
-                <input
-                    className="flex-1 bg-gray-50 border-2 border-pink-100 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-300 transition-colors"
-                    placeholder="Ask your cute PDF a question..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-                <button type="submit" className="bg-pink-400 hover:bg-pink-500 text-white px-6 rounded-xl font-bold shadow-lg shadow-pink-200 transition-transform active:scale-95">
-                    Ask!
-                </button>
-                </form>
-            </div>
-            </div>
+          </div>
         </div>
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                <Sparkles className="w-16 h-16 text-pink-300 mb-4" />
+                <p className="text-gray-400 text-lg font-medium">Ask me anything about your PDF!</p>
+                <p className="text-gray-300 text-sm mt-2">I'll help you understand the content 🐰</p>
+              </div>
+            )}
+            
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-2xl ${msg.type === 'user' 
+                  ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-2xl rounded-tr-sm' 
+                  : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm shadow-lg border-2 border-pink-100'
+                } p-5 transform transition-all hover:scale-[1.02]`}>
+                  {msg.type === 'ai' && (
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-pink-100">
+                      <span className="text-2xl">🐰</span>
+                      <span className="font-bold text-pink-500">AI Assistant</span>
+                    </div>
+                  )}
+                  <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                </div>
+              </div>
+            ))}
+            
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white text-gray-800 rounded-2xl rounded-tl-sm shadow-lg border-2 border-pink-100 p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                    <span className="text-sm text-gray-500">Thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="p-6 bg-white/90 backdrop-blur-xl border-t-2 border-pink-100">
+            <div className="flex gap-3">
+              <input
+                className="flex-1 bg-white border-2 border-pink-200 rounded-2xl px-6 py-4 focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100 transition-all text-gray-700 placeholder-gray-400 shadow-sm"
+                placeholder="Ask anything about your PDF..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={loading}
+              />
+              <button 
+                onClick={handleAsk}
+                disabled={loading || !query.trim()}
+                className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white p-4 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-8"
+              >
+                <Send className="w-5 h-5" />
+                <span>Ask</span>
+              </button>
+            </div>
+          </div>
         </div>
-);
+      </div>
+    </div>
+  );
 };
+
+export default ImprovedNotebook;

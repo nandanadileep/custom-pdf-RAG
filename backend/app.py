@@ -15,6 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if os.path.exists("static"):
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 @app.get("/")
 def root():
     return {"message": "Custom PDF RAG Server Running"}

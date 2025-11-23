@@ -7,26 +7,30 @@ const Home = () => {
   const [currentFile, setCurrentFile] = useState<string | null>(null);
 
   return (
-    <div className="relative min-h-screen w-full bg-white dark:bg-gray-900 transition-colors duration-300 overflow-hidden flex flex-col items-center">
+    <div className="min-h-screen w-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex flex-col">
       
-      {/* Header */}
-      <header className="w-full p-6 flex justify-center z-20">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-kawaii-300 to-kawaii-500 drop-shadow-sm flex items-center gap-3">
-          🐰 ChatPDF
-        </h1>
-      </header>
+      {/* Header - Only show when no file is uploaded */}
+      {!currentFile && (
+        <header className="w-full p-6 flex justify-center z-20">
+          <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 drop-shadow-lg flex items-center gap-3">
+            🐰 ChatPDF
+          </h1>
+        </header>
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-grow w-full flex items-center justify-center relative z-20 pb-20">
+      <main className="flex-1 w-full flex items-center justify-center px-4 py-6">
         {!currentFile ? (
           <UploadCard onUploadComplete={(filename) => setCurrentFile(filename)} />
         ) : (
-          <Notebook filename={currentFile} />
+          <div className="w-full h-full flex items-center justify-center">
+            <Notebook filename={currentFile} />
+          </div>
         )}
       </main>
 
-      {/* Footer Decoration */}
-      <CuteAnimals />
+      {/* Footer Decoration - Only show when no file */}
+      {!currentFile && <CuteAnimals />}
     </div>
   );
 };
