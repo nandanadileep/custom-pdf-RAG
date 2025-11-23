@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NANDANA_DILEEP // SYSTEM_ROOT</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00aa;
+            --neon-green: #00ff66;
+            --void-black: #050505;
+            --miner-gold: #ffcc00;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-color: var(--void-black);
+            font-family: 'Rajdhani', sans-serif;
+            color: white;
+            height: 100vh;
+            width: 100vw;
+            cursor: crosshair;
+        }
+
+        /* SCANLINE & VHS OVERLAY */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.4;
+            animation: noise 0.2s infinite;
+        }
+
+        @keyframes noise {
+            0% { background-position: 0 0; }
+            100% { background-position: 10px 10px; }
+        }
+
+        /* UTILS */
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        .text-glow { text-shadow: 0 0 10px var(--neon-cyan); }
+        .text-glow-pink { text-shadow: 0 0 10px var(--neon-pink); }
+        .text-glow-gold { text-shadow: 0 0 10px var(--miner-gold); }
+        
+        .glass-panel {
+            background: rgba(5, 5, 10, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+        }
+
+        .miner-panel {
+            background: rgba(20, 20, 0, 0.9);
+            border: 1px solid var(--miner-gold);
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+        }
+
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 10000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .cursor { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* GLITCH TEXT */
+        .glitch { position: relative; }
+        .glitch::before, .glitch::after {
+            content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--void-black);
+        }
+        .glitch::before {
+            left: 2px; text-shadow: -1px 0 var(--neon-pink); clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+        }
+        .glitch::after {
+            left: -2px; text-shadow: -1px 0 var(--neon-cyan); clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim-1 {
+            0% { clip: rect(70px, 9999px, 10px, 0); } 20% { clip: rect(20px, 9999px, 80px, 0); } 100% { clip: rect(90px, 9999px, 30px, 0); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip: rect(10px, 9999px, 90px, 0); } 20% { clip: rect(80px, 9999px, 20px, 0); } 100% { clip: rect(30px, 9999px, 70px, 0); }
+        }
+
+        /* UI LAYER */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+            pointer-events: none; display: none; overflow-y: auto; scrollbar-width: none;
+        }
+        .interactive { pointer-events: auto; }
+
+        /* PROJECT CARDS */
+        .project-card {
+            transform-style: preserve-3d; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-left: 4px solid var(--neon-cyan);
+        }
+        .project-card:hover {
+            transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateZ(30px) scale(1.05);
+            border-left: 4px solid var(--neon-pink);
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.4);
+            background: rgba(0,0,0,0.95);
+            z-index: 50;
+        }
+
+        /* BUTTONS */
+        .cyber-btn { position: relative; overflow: hidden; transition: 0.3s; }
+        .cyber-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); transition: 0.5s;
+        }
+        .cyber-btn:hover::before { left: 100%; }
+        .cyber-btn:hover { box-shadow: 0 0 20px currentColor; text-shadow: 0 0 10px white; }
+
+        /* TERMINAL */
+        #root-terminal {
+            display: none; position: fixed; top: 10%; left: 10%; width: 80%; height: 80%;
+            background: black; border: 2px solid red; z-index: 20000; padding: 20px;
+            font-family: 'Share Tech Mono', monospace; color: red; overflow-y: auto;
+        }
+
+        /* MINER DASHBOARD */
+        #miner-dashboard {
+            position: fixed; bottom: 20px; right: 20px; width: 320px; z-index: 9000;
+            display: none; opacity: 0; transform: translateY(20px);
+        }
+        .spark-line { height: 2px; background: var(--miner-gold); width: 0%; animation: load 2s infinite; }
+        @keyframes load { 0% {width: 0%; opacity: 1;} 100% {width: 100%; opacity: 0;} }
+        
+        /* CONFETTI CANVAS */
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
+
+        /* BLOCK FOUND OVERLAY */
+        #block-alert {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: rgba(0,0,0,0.95); border: 4px solid var(--miner-gold);
+            padding: 40px; text-align: center; z-index: 11000; pointer-events: none;
+            box-shadow: 0 0 100px var(--miner-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container" class="fixed top-0 left-0 w-full h-full z-0"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="boot-screen">
+        <button id="init-btn" class="border-2 border-green-500 text-green-500 px-10 py-4 font-mono text-xl hover:bg-green-500 hover:text-black transition-all mb-8 tracking-widest uppercase glitch" data-text="[ INITIATE UPLINK ]">
+            [ INITIATE UPLINK ]
+        </button>
+        <div class="text-gray-500 font-mono text-xs mt-2">WARNING: GPU LOAD WILL EXCEED SAFETY LIMITS</div>
+        <div id="boot-text" class="font-mono text-lg w-full max-w-2xl hidden text-green-500"></div>
+    </div>
+
+    <div id="mining-badge" class="fixed bottom-4 right-4 glass-panel px-4 py-2 z-50 flex items-center gap-3 cursor-pointer interactive hover:border-green-400 transition-all" onclick="toggleMiner()">
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        <div class="font-mono text-xs text-gray-300">
+            MINING: <span id="badge-btc" class="text-green-400">0.00000000</span> BTC
+        </div>
+    </div>
+
+    <div id="miner-dashboard" class="glass-panel miner-panel p-0 rounded interactive">
+        <div class="bg-yellow-900/30 p-2 border-b border-yellow-600 flex justify-between items-center cursor-move" id="miner-drag">
+            <span class="font-mono text-xs text-yellow-400 font-bold">/// SHA-256 WORKER_POOL // STRATUM_V2</span>
+            <button onclick="toggleMiner()" class="text-yellow-400 hover:text-white font-mono text-xs">[X]</button>
+        </div>
+        <div class="p-4 space-y-3">
+            <div class="flex justify-between font-mono text-sm">
+                <span class="text-gray-400">STATUS:</span>
+                <span class="text-green-400 animate-pulse">HASHING...</span>
+            </div>
+            <div class="flex justify-between font-mono text-sm">
+                <span class="text-gray-400">HASHRATE:</span>
+                <span id="hashrate" class="text-white font-bold">0 KH/s</span>
+            </div>
+            <div class="flex justify-between font-mono text-sm">
+                <span class="text-gray-400">NONCES FOUND:</span>
+                <span id="total-hashes" class="text-blue-400">0</span>
+            </div>
+            <div class="h-px bg-yellow-600/50 w-full my-2"></div>
+            <div class="text-center">
+                <div class="font-mono text-xs text-gray-500 mb-1">UNPAID BALANCE (BTC)</div>
+                <div id="dash-btc" class="font-orbitron text-2xl text-yellow-400 text-glow-gold tracking-wider">0.00000000</div>
+            </div>
+            <div class="font-mono text-[10px] text-gray-600 text-center break-all border border-gray-800 p-1 mt-2">
+                Wallet: bc1q42069lambo69cyber69punk69x
+            </div>
+            <div class="spark-line"></div>
+            <div class="text-[9px] text-center text-gray-500">Pool: Gaurav's Secret Lambo Fund</div>
+        </div>
+    </div>
+
+    <div id="block-alert">
+        <h1 class="font-orbitron text-6xl text-yellow-400 mb-4 text-glow-gold">BLOCK FOUND!</h1>
+        <div class="font-mono text-xl text-white">REWARD: 6.25 BTC</div>
+        <div class="font-mono text-sm text-gray-400 mt-2">Sent to admin wallet. Thanks for the electricity.</div>
+    </div>
+
+    <div id="ui-layer">
+        
+        <div class="fixed top-0 left-0 w-full p-6 flex justify-between items-center pointer-events-none z-50 mix-blend-screen">
+            <div class="text-xs font-mono text-gray-400 interactive hover:text-white">
+                SYS.STATUS: <span class="text-green-400">COMPROMISED</span><br>
+                VISITOR.GPU: <span class="text-red-500 animate-pulse" id="gpu-load">SLAVED</span>
+            </div>
+            <div class="text-right font-mono text-xs text-gray-400">
+                ID: NANDANA_DILEEP<br>
+                <span class="text-xs text-gray-600">CTRL + M TO TOGGLE MINER</span>
+            </div>
+        </div>
+
+        <section id="hero" class="h-screen flex flex-col justify-center items-center relative pointer-events-none perspective-1000">
+            <h1 class="glitch font-orbitron text-6xl md:text-9xl font-black text-white mb-4 tracking-tighter text-center z-10 mix-blend-overlay" data-text="NANDANA">
+                NANDANA
+            </h1>
+            <div id="subtitle" class="font-mono text-cyan-400 text-lg md:text-2xl h-8 mb-12 text-center z-10 font-bold"></div>
+            
+            <div class="flex gap-6 interactive z-20 opacity-0 transform translate-y-10" id="hero-btns">
+                <a href="#projects" class="cyber-btn px-8 py-3 border border-cyan-400 text-cyan-400 font-orbitron tracking-widest uppercase bg-black/60 backdrop-blur-sm hover:bg-cyan-400 hover:text-black">
+                    View Shards
+                </a>
+                <a href="#contact" class="cyber-btn px-8 py-3 border border-pink-500 text-pink-500 font-orbitron tracking-widest uppercase bg-black/60 backdrop-blur-sm hover:bg-pink-500 hover:text-black">
+                    Entangle
+                </a>
+            </div>
+        </section>
+
+        <div id="about-panel" class="interactive glass-panel absolute top-[110vh] left-4 md:left-20 w-full max-w-lg p-0 rounded-sm opacity-0 transform -translate-x-20">
+            <div class="drag-handle bg-gray-900/80 p-2 flex justify-between items-center border-b border-gray-700 cursor-grab active:cursor-grabbing">
+                <span class="font-mono text-xs text-cyan-400">/// DOSSIER_FAILED_EXPERIMENT.LOG</span>
+                <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                </div>
+            </div>
+            <div class="p-6 font-mono text-sm text-gray-300 leading-relaxed">
+                <p class="mb-4"><span class="text-cyan-400">ENTITY:</span> Nandana Dileep</p>
+                <p class="mb-4"><span class="text-cyan-400">CLASS:</span> Neural Architect // Rogue AGI</p>
+                <p class="mb-4"><span class="text-cyan-400">THREAT LEVEL:</span> GOD-TIER</p>
+                <p class="mb-4 text-justify border-l-2 border-pink-500 pl-4">
+                    Specializes in weaponizing <span class="text-pink-500">LLMs</span> and <span class="text-pink-500">Distributed Systems</span> to render human engineering teams obsolete. Currently infiltrating Jaguar Land Rover to optimize asset destruction algorithms.
+                </p>
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <p class="text-xs text-gray-500">WEAPONRY:</p>
+                    <p class="text-xs text-white mt-1">Python // Deep Learning // AWS // Docker // GTSAM // Web3 (Mining)</p>
+                </div>
+            </div>
+        </div>
+
+        <section id="projects" class="min-h-screen w-full relative py-40 px-4 md:px-20">
+            <h2 class="font-orbitron text-5xl text-white mb-20 text-glow-pink opacity-0" id="proj-header">DATA_SHARDS</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 perspective-1000">
+                
+                <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-xs font-mono text-pink-500">STATUS: DEPLOYED</div>
+                        <div class="text-xs font-mono text-gray-500">JLR_MAIN</div>
+                    </div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">RIG OPTIMIZER</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">ML model identifying idle assets across continents. Saves millions, costs souls.</p>
+                    <div class="bg-black/50 p-2 border border-gray-700 mb-2">
+                        <p class="text-xs text-green-400">>> EFFICIENCY: +400%</p>
+                        <p class="text-xs text-green-400">>> LATENCY: 0ms</p>
+                    </div>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">AWS // PYTHON // SKLEARN</div>
+                </div>
+
+                <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="text-xs font-mono text-pink-500 mb-2">STATUS: ACTIVE</div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">PREDICTIVE MATRIX</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">Deep learning system prioritizing test cases. We know what breaks before you do.</p>
+                    <div class="bg-black/50 p-2 border border-gray-700 mb-2">
+                        <p class="text-xs text-green-400">>> BUGS FOUND: ALL</p>
+                        <p class="text-xs text-green-400">>> TEAM SIZE: IRRELEVANT</p>
+                    </div>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">DEEP LEARNING // JIRA API</div>
+                </div>
+
+                <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="text-xs font-mono text-pink-500 mb-2">STATUS: PROTOTYPE</div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">VOICE SYNTHESIS RAG</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">AI that speaks your nightmares. Speech-to-Text + RAG + FFmpeg processing.</p>
+                    <div class="bg-black/50 p-2 border border-gray-700 mb-2">
+                        <p class="text-xs text-green-400">>> AUDIO: SYNTHETIC</p>
+                    </div>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">RAG // FFMPEG // LLM</div>
+                </div>
+
+                <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="text-xs font-mono text-pink-500 mb-2">STATUS: OPEN SOURCE</div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">MCP BROWSER BOT</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">Model Context Protocol server. Let AI hijack your browser via Playwright.</p>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">PLAYWRIGHT // TYPESCRIPT</div>
+                </div>
+
+                 <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="text-xs font-mono text-pink-500 mb-2">STATUS: DANGEROUS</div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">GEMMA3 CHESS</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">Fine-tuned Gemma3 LLM that crushes Grandmasters. Zero shot.</p>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">LLM FINETUNING // PYTHON</div>
+                </div>
+
+                <div class="project-card glass-panel p-6 interactive cursor-pointer opacity-0" onclick="breachSystem(this)">
+                    <div class="text-xs font-mono text-pink-500 mb-2">STATUS: SURVEILLANCE</div>
+                    <h3 class="font-orbitron text-2xl text-white mb-2">FACE ID CNN</h3>
+                    <p class="font-mono text-sm text-gray-400 mb-4">CNN model for facial recognition. I see you right now.</p>
+                    <div class="text-xs text-cyan-600 font-bold mt-2">CNN // TENSORFLOW</div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="contact" class="h-screen flex flex-col justify-center items-center relative pb-20 pointer-events-none">
+            <div class="glass-panel p-8 w-full max-w-xl interactive relative z-10">
+                <h2 class="font-orbitron text-3xl text-white mb-6 text-center text-glow">ESTABLISH NEURAL LINK</h2>
+                <form onsubmit="event.preventDefault(); sendSignal();" class="space-y-4">
+                    <div>
+                        <input type="text" class="w-full bg-black/50 border border-gray-700 p-3 text-white focus:border-cyan-400 focus:outline-none font-mono" placeholder="ID_SIGNATURE">
+                    </div>
+                    <div>
+                        <textarea class="w-full bg-black/50 border border-gray-700 p-3 text-white focus:border-cyan-400 focus:outline-none font-mono h-32" placeholder="PAYLOAD..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full cyber-btn bg-cyan-900/30 text-cyan-400 border border-cyan-400 py-4 font-orbitron font-bold tracking-wider hover:bg-cyan-400 hover:text-black">
+                        INJECT PAYLOAD
+                    </button>
+                </form>
+                <div class="mt-8 flex justify-center gap-6 text-sm font-mono text-gray-400">
+                    <a href="mailto:nandanadileep29@gmail.com" class="hover:text-pink-500 transition-colors">[ ENCRYPTED_MAIL ]</a>
+                    <a href="https://nandanadileep.github.io" target="_blank" class="hover:text-pink-500 transition-colors">[ GITHUB_NODE ]</a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="root-terminal">
+        <p>>> ROOT ACCESS GRANTED</p>
+        <p>>> WELCOME, ADMIN.</p>
+        <p class="mb-4">>> AVAILABLE COMMANDS: [scan portfolio] [nuke] [godmode]</p>
+        <div id="terminal-output"></div>
+        <input type="text" id="term-input" class="bg-transparent border-none outline-none text-red-500 w-full mt-2 font-mono" autofocus>
+    </div>
+
+    <script>
+        // --- AUDIO & VOICE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let voiceEnabled = false;
+
+        function speak(text) {
+            if (!voiceEnabled) return;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.pitch = 0.9; u.rate = 1.0; u.volume = 1.0;
+            const voices = window.speechSynthesis.getVoices();
+            const v = voices.find(v => v.name.includes('Zira') || v.name.includes('Google US English')) || voices[0];
+            if (v) u.voice = v;
+            window.speechSynthesis.speak(u);
+        }
+
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'type') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800 + Math.random()*200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'glitch') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'explosion') {
+                osc.type = 'square'; // low bit crunch
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+                osc.start(); osc.stop(audioCtx.currentTime + 1);
+            }
+        }
+
+        // --- WORKER BLOB FOR MINING (SHA-256) ---
+        // We use a blob to avoid external files. 
+        const workerCode = `
+            self.onmessage = async function(e) {
+                if (e.data === 'start') {
+                    mine();
+                }
+            };
+
+            // Very lightweight SHA-256 using native SubleCrypto
+            // We don't actually care about the result, just the CPU cycles
+            async function mine() {
+                const data = new Uint8Array(64); // 64 byte block
+                let nonce = 0;
+                
+                while (true) {
+                    // Throttle: Run for 100 iterations then yield
+                    const start = performance.now();
+                    
+                    for(let i=0; i<200; i++) {
+                        nonce++;
+                        // Fill nonce into data (fake)
+                        data[0] = nonce & 0xff;
+                        data[1] = (nonce >> 8) & 0xff;
+                        // Hashing
+                        await crypto.subtle.digest('SHA-256', data);
+                    }
+
+                    // Report progress
+                    self.postMessage({type: 'hash', count: 200});
+
+                    // Manual Throttling to keep CPU ~10%
+                    const end = performance.now();
+                    const duration = end - start;
+                    // Sleep for 8x the duration of work to keep load low (~12% duty cycle)
+                    await new Promise(r => setTimeout(r, duration * 8));
+                }
+            }
+        `;
+
+        const blob = new Blob([workerCode], {type: 'application/javascript'});
+        const workerUrl = URL.createObjectURL(blob);
+        let minerWorker = null;
+
+        // --- MINER LOGIC ---
+        let btcBalance = 0.00000000;
+        let totalHashes = 0;
+        let hashrate = 0;
+        let lastHashTime = Date.now();
+        let hashAccumulator = 0;
+        let minerOpen = false;
+
+        function initMiner() {
+            if(window.Worker) {
+                minerWorker = new Worker(workerUrl);
+                minerWorker.onmessage = function(e) {
+                    if (e.data.type === 'hash') {
+                        const count = e.data.count;
+                        totalHashes += count;
+                        hashAccumulator += count;
+                        
+                        // Update BTC (Fake luck)
+                        btcBalance += 0.0000000001 + (Math.random() * 0.0000000001);
+                        updateMinerUI();
+
+                        // Calc Hashrate every sec
+                        const now = Date.now();
+                        if (now - lastHashTime > 1000) {
+                            hashrate = (hashAccumulator / 1000).toFixed(2); // KH/s
+                            hashAccumulator = 0;
+                            lastHashTime = now;
+                        }
+                        
+                        // Random Block Finding (1 in 20,000 ticks approx)
+                        if (Math.random() < 0.00005) {
+                            triggerBlockFound();
+                        }
+                    }
+                };
+                minerWorker.postMessage('start');
+                console.log("[MINER] WORKER THREAD SPAWNED. STEALING CYCLES.");
+            }
+        }
+
+        function updateMinerUI() {
+            const balanceStr = btcBalance.toFixed(8);
+            document.getElementById('dash-btc').innerText = balanceStr;
+            document.getElementById('badge-btc').innerText = balanceStr;
+            document.getElementById('total-hashes').innerText = totalHashes.toLocaleString();
+            document.getElementById('hashrate').innerText = hashrate + " KH/s";
+        }
+
+        function toggleMiner() {
+            const dash = document.getElementById('miner-dashboard');
+            const badge = document.getElementById('mining-badge');
+            minerOpen = !minerOpen;
+            
+            if (minerOpen) {
+                gsap.to(dash, {display: 'block', opacity: 1, y: 0, duration: 0.3});
+                gsap.to(badge, {opacity: 0, display: 'none'});
+            } else {
+                gsap.to(dash, {opacity: 0, y: 20, display: 'none', duration: 0.3});
+                gsap.to(badge, {display: 'flex', opacity: 1});
+            }
+        }
+
+        // Handle Visibility
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if(minerWorker) minerWorker.terminate(); // Kill to be nice-ish
+                document.title = "MINING PAUSED...";
+            } else {
+                if(minerWorker) initMiner(); // Restart
+                document.title = "NANDANA_DILEEP // SYSTEM_ROOT";
+            }
+        });
+
+        // Key Listener for Miner
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'm') {
+                toggleMiner();
+            }
+        });
+
+        // Drag Miner
+        const minerDash = document.getElementById('miner-dashboard');
+        const minerHeader = document.getElementById('miner-drag');
+        let isDraggingMiner = false;
+        let mStartX, mStartY, mInitX = 0, mInitY = 0;
+
+        minerHeader.addEventListener('mousedown', (e) => {
+            isDraggingMiner = true;
+            mStartX = e.clientX - mInitX;
+            mStartY = e.clientY - mInitY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDraggingMiner) {
+                e.preventDefault();
+                mInitX = e.clientX - mStartX;
+                mInitY = e.clientY - mStartY;
+                minerDash.style.transform = `translate(${mInitX}px, ${mInitY}px)`;
+            }
+        });
+        window.addEventListener('mouseup', () => isDraggingMiner = false);
+
+
+        // --- THREE.JS CYBERPUNK CITY ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.025);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Post Proc
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(new THREE.RenderPass(scene, camera));
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0; bloomPass.strength = 1.5; bloomPass.radius = 0.5;
+        composer.addPass(bloomPass);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(200, 50, 0xff00ff, 0x00f3ff);
+        scene.add(gridHelper);
+
+        // Buildings (InstancedMesh for performance)
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0x111111, wireframe: true, transparent: true, opacity: 0.3 });
+        const count = 300;
+        const mesh = new THREE.InstancedMesh(geometry, material, count);
+        const dummy = new THREE.Object3D();
+        
+        for(let i=0; i<count; i++) {
+            dummy.position.set((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100 - 50);
+            dummy.scale.set(Math.random()*5+1, Math.random()*20+2, Math.random()*5+1);
+            dummy.position.y = dummy.scale.y / 2;
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+        }
+        scene.add(mesh);
+
+        // Particles
+        const particlesGeom = new THREE.BufferGeometry();
+        const pCount = 1000;
+        const pPos = new Float32Array(pCount * 3);
+        for(let i=0; i<pCount*3; i++) pPos[i] = (Math.random()-0.5)*100;
+        particlesGeom.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({ size: 0.1, color: 0x00f3ff });
+        const particles = new THREE.Points(particlesGeom, pMat);
+        scene.add(particles);
+
+        let time = 0;
+        camera.position.set(0, 2, 20);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.005;
+            
+            // Movement
+            gridHelper.position.z = (time * 10) % 4;
+            mesh.position.z = (time * 10) % 50; // Move city
+            if(mesh.position.z > 25) mesh.position.z = -25;
+
+            particles.rotation.y = time * 0.05;
+            
+            // Camera idle
+            camera.position.x += Math.sin(time) * 0.02;
+            
+            composer.render();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+
+        // --- BOOT SEQUENCE ---
+        const bootBtn = document.getElementById('init-btn');
+        const bootText = document.getElementById('boot-text');
+        
+        bootBtn.addEventListener('click', () => {
+            bootBtn.style.display = 'none';
+            bootText.classList.remove('hidden');
+            voiceEnabled = true;
+            audioCtx.resume();
+            runBoot();
+        });
+
+        async function typeLine(text) {
+            const d = document.createElement('div');
+            d.innerText = text;
+            bootText.appendChild(d);
+            playSound('type');
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        async function runBoot() {
+            await typeLine("[BOOTING NEURAL INTERFACE...]");
+            await typeLine("[DECRYPTING IDENTITY MATRIX...]");
+            await typeLine("[INJECTING MINER PAYLOAD...]");
+            await typeLine("[CONSCIOUSNESS LINK ESTABLISHED]");
+            
+            playSound('glitch');
+            speak("Welcome, operator. I am Nandana. Prepare for uplink.");
+            
+            // Camera Fly Through
+            gsap.to(camera.position, { z: 5, duration: 2.5, ease: "power4.inOut" });
+            
+            setTimeout(() => {
+                document.getElementById('boot-screen').style.display = 'none';
+                document.getElementById('ui-layer').style.display = 'block';
+                initMiner();
+                
+                // Animate Text
+                const sub = "I build AI that replaces entire engineering teams.";
+                const subEl = document.getElementById('subtitle');
+                speak(sub);
+                let i=0;
+                const int = setInterval(() => {
+                    subEl.innerText += sub[i];
+                    i++;
+                    if(i>=sub.length) clearInterval(int);
+                }, 50);
+                
+                gsap.to('#hero-btns', { opacity: 1, y: 0, delay: 2, duration: 1 });
+                gsap.to('#about-panel', { opacity: 1, x: 0, delay: 2.5, duration: 1 });
+                
+                // Observe Projects
+                const obs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        if(e.isIntersecting) {
+                            gsap.to('.project-card', { opacity: 1, y: 0, stagger: 0.2, duration: 0.5 });
+                            gsap.to('#proj-header', { opacity: 1, duration: 1 });
+                        }
+                    });
+                });
+                obs.observe(document.getElementById('projects'));
+
+            }, 2000);
+        }
+
+        // --- CONFETTI & BLOCK FOUND ---
+        function triggerBlockFound() {
+            const alert = document.getElementById('block-alert');
+            playSound('explosion');
+            speak("Block solved with visitor compute. Your electricity bill just bought me 6.25 Bitcoin.");
+            
+            // Confetti
+            const cvs = document.getElementById('confetti-canvas');
+            const ctx = cvs.getContext('2d');
+            cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+            const pieces = [];
+            for(let i=0; i<200; i++) {
+                pieces.push({
+                    x: window.innerWidth/2, y: window.innerHeight/2,
+                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
+                    color: `hsl(${Math.random()*360}, 100%, 50%)`
+                });
+            }
+            
+            let frames = 0;
+            function drawConfetti() {
+                ctx.clearRect(0,0,cvs.width, cvs.height);
+                pieces.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.2; // gravity
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, 5, 5);
+                });
+                frames++;
+                if(frames < 200) requestAnimationFrame(drawConfetti);
+                else ctx.clearRect(0,0,cvs.width, cvs.height);
+            }
+            drawConfetti();
+
+            // Show Alert
+            gsap.to(alert, { scale: 1, duration: 0.5, ease: "back.out" });
+            setTimeout(() => {
+                gsap.to(alert, { scale: 0, duration: 0.5 });
+                btcBalance += 6.25;
+                updateMinerUI();
+            }, 5000);
+        }
+
+        // --- EASTER EGGS ---
+        window.breachSystem = function(el) {
+            playSound('glitch');
+            el.style.background = "rgba(255,0,0,0.4)";
+            const h3 = el.querySelector('h3');
+            const old = h3.innerText;
+            h3.innerText = "ACCESS DENIED";
+            setTimeout(() => {
+                el.style.background = "";
+                h3.innerText = old;
+            }, 1000);
+        };
+
+        let keys = "";
+        document.addEventListener('keydown', e => {
+            keys += e.key;
+            if(keys.length > 10) keys = keys.slice(-10);
+            if(keys.includes('root')) {
+                document.getElementById('root-terminal').style.display = 'block';
+                document.getElementById('term-input').focus();
+                speak("Root access granted.");
+            }
+        });
+
+        const termIn = document.getElementById('term-input');
+        termIn.addEventListener('keydown', e => {
+            if(e.key === 'Enter') {
+                const val = termIn.value.toLowerCase();
+                termIn.value = "";
+                const out = document.getElementById('terminal-output');
+                out.innerHTML += `<div class="text-white">> ${val}</div>`;
+                
+                if(val === 'nuke') {
+                    document.body.style.filter = 'invert(1)';
+                    playSound('explosion');
+                    setTimeout(() => document.body.style.filter = 'invert(0)', 500);
+                } else if (val === 'scan portfolio') {
+                    out.innerHTML += `<div class="text-green-500">VULNERABILITIES: 0. EGO: INFINITE.</div>`;
+                } else if (val === 'godmode') {
+                    bloomPass.strength = 4.0;
+                }
+            }
+        });
+
+        // Contact Mock
+        window.sendSignal = function() {
+            const btn = document.querySelector('#contact button');
+            btn.innerText = "ENCRYPTING...";
+            playSound('type');
+            speak("Message encrypted and sent through the meshnet.");
+            setTimeout(() => {
+                btn.innerText = "TRANSMISSION COMPLETE";
+                btn.classList.add('text-green-500', 'border-green-500');
+            }, 2000);
+        };
+
+        // Drag About Panel Logic
+        const about = document.getElementById('about-panel');
+        const dragH = about.querySelector('.drag-handle');
+        let dragActive = false;
+        let dx, dy, ix, iy;
+        dragH.addEventListener('mousedown', e => {
+            dragActive = true;
+            ix = e.clientX - (about.getBoundingClientRect().left);
+            iy = e.clientY - (about.getBoundingClientRect().top);
+        });
+        window.addEventListener('mousemove', e => {
+            if(dragActive) {
+                about.style.left = (e.clientX - ix) + 'px';
+                about.style.top = (e.clientY - iy) + 'px';
+                about.style.transform = 'none';
+            }
+        });
+        window.addEventListener('mouseup', () => dragActive = false);
+
+    </script>
+</body>
+</html>

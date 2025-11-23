@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&family=Nunito:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Fredoka is a very round, cute font */
+    font-family: 'Fredoka', sans-serif; 
+    @apply bg-pink-50 text-gray-700 overflow-x-hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-pink-50;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-pink-200 rounded-full border-2 border-pink-50;
+}
+
+/* Pixel Art crisp rendering for images */
+.pixel-art {
+  image-rendering: pixelated;
+}
+
+/* The Notebook Lines */
+.notebook-lines {
+  background-image: repeating-linear-gradient(transparent, transparent 31px, #E5E7EB 31px, #E5E7EB 32px);
+  background-color: #fffdf5;
+  line-height: 32px;
+}

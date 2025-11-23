@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ingest import process_pdf
 from retriever import search
 from llm import get_answer
+from fastapi import File
 
 app = FastAPI()
 
@@ -19,9 +20,9 @@ def root():
     return {"message": "Custom PDF RAG Server Running"}
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile):
-    content = await file.read()
-    filename = file.filename.replace(".pdf", "")
+async def upload_pdf(filename: UploadFile = File(...)):
+    content = await filename.read()
+    filename = filename.filename.replace(".pdf", "")
 
     info = process_pdf(content, filename)
 
