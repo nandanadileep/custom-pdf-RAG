@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useRef, useState } from 'react';
 import { Upload, Heart, Sparkles } from 'lucide-react';
 import axios from 'axios';
@@ -7,7 +6,7 @@ interface UploadCardProps {
   onUploadComplete: (filename: string) => void;
 }
 
-const UploadCard: React.FC<UploadCardProps> = ({ onUploadComplete }) => {
+const UploadCard = ({ onUploadComplete }: UploadCardProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

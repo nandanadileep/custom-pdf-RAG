@@ -1,19 +1,12 @@
-import * as React from 'react';
 import { useState } from 'react';
-import { Upload, Heart } from 'lucide-react';
+import { Upload, Heart, Send, BookOpen, Sparkles } from 'lucide-react';
 import axios from 'axios';
-import { Send, BookOpen, Sparkles } from 'lucide-react';
 
 interface NotebookProps {
   filename: string;
 }
 
-interface SearchResult {
-  text: string;
-  page?: number;
-}
-
-const Notebook: React.FC<NotebookProps> = ({ filename }) => {
+const Notebook = ({ filename }: NotebookProps) => {
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -105,4 +98,4 @@ const Notebook: React.FC<NotebookProps> = ({ filename }) => {
         </div>
         </div>
 );
-}
+};

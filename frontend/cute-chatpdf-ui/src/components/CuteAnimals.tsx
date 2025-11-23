@@ -1,10 +1,9 @@
-import * as React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Heart } from 'lucide-react';
 
 
-const CuteAnimals: React.FC = () => {
+const CuteAnimals = () => {
   return (
     <div className="fixed bottom-0 left-0 w-full h-32 pointer-events-none z-50">
       {/* 1. The decorative floor/bar at the very bottom */}
