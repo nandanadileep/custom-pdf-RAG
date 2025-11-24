@@ -1,10 +1,13 @@
 FROM node:20 AS frontend
 
 WORKDIR /app/frontend
-COPY frontend/cute-chatpdf-ui/package.json frontend/cute-chatpdf-ui/package-lock.json ./
+
+COPY frontend/cute-chatpdf-ui/package*.json ./
+
 RUN npm install
 
-COPY frontend/cute-chatpdf-ui .
+COPY frontend/cute-chatpdf-ui/ ./
+
 RUN npm run build
 
 
