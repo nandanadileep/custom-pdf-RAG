@@ -22,16 +22,23 @@ def health_check():
 
 @app.post("/api/upload")
 async def upload_pdf(filename: UploadFile = File(...)):
-    content = await filename.read()
-    file_name_clean = filename.filename.replace(".pdf", "")
+    try:
+        content = await filename.read()
+        file_name_clean = filename.filename.replace(".pdf", "")
 
-    info = process_pdf(content, file_name_clean)
+        print("UPLOAD STARTED")
+        info = process_pdf(content, file_name_clean)
+        print("UPLOAD SUCCESS")
 
-    return {
-        "status": "indexed",
-        "filename": file_name_clean,
-        "chunks": info["chunks"]
-    }
+        return {
+            "status": "indexed",
+            "filename": file_name_clean,
+            "chunks": info["chunks"]
+        }
+    except Exception as e:
+        print("UPLOAD ERROR:", e)
+        raise
+
 
 @app.post("/api/query")
 async def query_pdf(query: str = Form(...), filename: str = Form(...)):
