@@ -1,9 +1,10 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, Form, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # <--- Added this
+import os                                    # <--- Added this
 from ingest import process_pdf
 from retriever import search
 from llm import get_answer
-from fastapi import File
 
 app = FastAPI()
 
@@ -15,26 +16,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve static files if the directory exists (Production mode)
 if os.path.exists("static"):
     app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-@app.get("/")
-def root():
+@app.get("/api/health") # Renamed root to avoid conflict with StaticFiles if they both try to catch "/"
+def health_check():
     return {"message": "Custom PDF RAG Server Running"}
 
 @app.post("/upload")
 async def upload_pdf(filename: UploadFile = File(...)):
     content = await filename.read()
-    filename = filename.filename.replace(".pdf", "")
+    file_name_clean = filename.filename.replace(".pdf", "")
 
-    info = process_pdf(content, filename)
+    info = process_pdf(content, file_name_clean)
 
     return {
         "status": "indexed",
-        "filename": filename,
+        "filename": file_name_clean,
         "chunks": info["chunks"]
     }
-
 
 @app.post("/query")
 async def query_pdf(query: str = Form(...), filename: str = Form(...)):
