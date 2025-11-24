@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Send, Sparkles, FileText, MessageSquare } from 'lucide-react';
 
+// Use relative URL so it works in both dev and production
+const API_URL = '';
+
 const ImprovedNotebook = ({ filename }: { filename: string }) => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Array<{type: 'user' | 'ai', text: string}>>([]);
@@ -19,7 +22,7 @@ const ImprovedNotebook = ({ filename }: { filename: string }) => {
       formData.append('query', userMessage);
       formData.append('filename', filename);
 
-      const res = await fetch('http://127.0.0.1:8000/query', {
+      const res = await fetch(`${API_URL}/query`, {
         method: 'POST',
         body: formData
       });

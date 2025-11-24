@@ -4,9 +4,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Initialize client as None
+client = None
+
+def get_groq_client():
+    global client
+    if client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY is missing! Check your Render Environment Variables.")
+        client = Groq(api_key=api_key)
+    return client
 
 def get_answer(query, retrieved_chunks):
+    client = get_groq_client() # Connect only when needed
+    
     context = "\n\n".join(retrieved_chunks)
 
     prompt = f"""

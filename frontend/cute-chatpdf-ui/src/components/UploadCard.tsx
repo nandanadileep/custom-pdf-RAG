@@ -6,6 +6,9 @@ interface UploadCardProps {
   onUploadComplete: (filename: string) => void;
 }
 
+// Use relative URL so it works in both dev and production
+const API_URL = '';
+
 const UploadCard = ({ onUploadComplete }: UploadCardProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,18 +19,17 @@ const UploadCard = ({ onUploadComplete }: UploadCardProps) => {
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append('filename', file); // Matches FastAPI 'filename' parameter
+    formData.append('filename', file);
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/upload', formData, {
+      const res = await axios.post(`${API_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      // Assuming backend returns { filename: "name_without_pdf", ... }
       onUploadComplete(res.data.filename); 
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Oops! Couldn't upload the PDF. Is the backend running?");
+      alert("Oops! Couldn't upload the PDF. Please try again.");
     } finally {
       setIsLoading(false);
     }
