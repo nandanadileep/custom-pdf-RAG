@@ -22,7 +22,7 @@ const UploadCard = ({ onUploadComplete }: UploadCardProps) => {
     formData.append('filename', file);
 
     try {
-      const res = await axios.post(`${API_URL}/upload`, formData, {
+      const res = await axios.post(`${API_URL}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       

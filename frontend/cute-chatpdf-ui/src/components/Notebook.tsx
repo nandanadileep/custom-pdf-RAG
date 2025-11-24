@@ -22,7 +22,7 @@ const ImprovedNotebook = ({ filename }: { filename: string }) => {
       formData.append('query', userMessage);
       formData.append('filename', filename);
 
-      const res = await fetch(`${API_URL}/query`, {
+      const res = await fetch(`${API_URL}/api/query`, {
         method: 'POST',
         body: formData
       });

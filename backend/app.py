@@ -20,7 +20,7 @@ app.add_middleware(
 def health_check():
     return {"message": "Custom PDF RAG Server Running"}
 
-@app.post("/upload")
+@app.post("/api/upload")
 async def upload_pdf(filename: UploadFile = File(...)):
     content = await filename.read()
     file_name_clean = filename.filename.replace(".pdf", "")
@@ -33,7 +33,7 @@ async def upload_pdf(filename: UploadFile = File(...)):
         "chunks": info["chunks"]
     }
 
-@app.post("/query")
+@app.post("/api/query")
 async def query_pdf(query: str = Form(...), filename: str = Form(...)):
     results = search(query, filename)
     answer = get_answer(query, [r["text"] for r in results])
@@ -43,6 +43,5 @@ async def query_pdf(query: str = Form(...), filename: str = Form(...)):
         "results": results
     }
 
-# MOVED TO BOTTOM: Mount static files last so they don't block API routes
 if os.path.exists("static"):
     app.mount("/", StaticFiles(directory="static", html=True), name="static")
