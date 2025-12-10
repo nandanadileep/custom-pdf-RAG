@@ -124,7 +124,7 @@ npm run dev
 
 ## Project Purpose
 
-The goal was to build a complete RAG application demonstrating the full workflow from document processing to AI-powered question answering. This includes PDF text extraction and chunking, semantic embedding generation, vector similarity search, LLM integration with context injection, and building a REST API with a modern React interface. It works as a portfolio project to showcase full-stack ML engineering skills or as a foundation for document intelligence applications.
+The goal was to build a complete RAG application demonstrating the full workflow from document processing to AI-powered question answering. This includes PDF text extraction and chunking, semantic embedding generation, vector similarity search, LLM integration with context injection, and building a REST API with a modern React interface. 
 
 ## Tech Stack
 
